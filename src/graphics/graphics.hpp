@@ -2,6 +2,8 @@
 #define GRAPHICS_HPP_INCLUDED
 
 #include "GLL/GLL.hpp"
+#include <functional>
+#include <vector>
 
 struct ProgramVars
 {
@@ -11,10 +13,15 @@ struct ProgramVars
     gll::Uniform tex;
 };
 
+struct Model
+{
+    GLuint vbo, vao;
+};
+
 struct Graphics
 {
     ProgramVars program_vars;
-    GLuint vbo, vao;
+    std::vector<Model> models;
 };
 
 void init_graphics(Graphics *graphics);
