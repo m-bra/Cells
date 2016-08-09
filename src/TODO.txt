@@ -1,0 +1,3 @@
+ - instead of circle vertices, try out simple quad & circle texture
+    -> pro: less vertices
+    -> con: weird overlap of multiple quads (depth)
