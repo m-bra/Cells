@@ -7,6 +7,6 @@ uniform sampler2D tex;
 
 void main()
 {
-    //fragRGBA = texture(tex, fragUV);
-    fragRGBA = vec4(1, 0, 0, 1);
+    fragRGBA = texture(tex, fragUV);
+    //fragRGBA = vec4(1, 0, 0, 1);
 }

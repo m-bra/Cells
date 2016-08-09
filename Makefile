@@ -1,8 +1,8 @@
 EXECUTABLE=organisms
-SOURCES=src/main.cpp src/physics/physics.cpp src/graphics/graphics.cpp GLL++/Program.cpp
-HEADERS=src/util/vector.h src/linmath.h src/physics/physics.hpp src/util/util.h shared/sleep.h GLL++/GLL/GLL.hpp
+SOURCES=src/main.cpp src/physics/physics.cpp src/graphics/graphics.cpp GLL++/Program.cpp shared/Logger.cpp
+HEADERS=src/util/vector.h src/linmath.h src/physics/physics.hpp src/util/util.h shared/sleep.h GLL++/GLL/GLL.hpp shared/Logger.hpp
 CC=g++
-CFLAGS=-O3
+CFLAGS=-O2 -Dcimg_display=0
 LDFLAGS=`pkg-config --static --libs glfw3` -lglbinding
 
 OBJECTS=$(SOURCES:%=build/%.o)
@@ -16,6 +16,7 @@ $(EXECUTABLE): $(OBJECTS)
 	$(CC) -o$(EXECUTABLE) $(OBJECTS) $(LDFLAGS)
 
 build/%.o: % $(HEADERS_PATHS)
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o$@ -c $<
 
 .PHONY: run

@@ -22,6 +22,7 @@ struct Graphics
 {
     ProgramVars program_vars;
     std::vector<Model> models;
+    GLuint tex;
 };
 
 void init_graphics(Graphics *graphics);
