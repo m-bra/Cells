@@ -1,0 +1,5 @@
+-I%PROJECT%/src
+-I%PROJECT%/shared
+-I%PROJECT%/GLL++
+-xc++
+-std=c++11
