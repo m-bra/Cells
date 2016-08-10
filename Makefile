@@ -15,7 +15,7 @@ all: $(EXECUTABLE)
 $(EXECUTABLE): $(OBJECTS)
 	$(CC) -o$(EXECUTABLE) $(OBJECTS) $(LDFLAGS)
 
-build/%.o: % $(HEADERS_PATHS)
+build/%.o: % $(HEADERS)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -o$@ -c $<
 
