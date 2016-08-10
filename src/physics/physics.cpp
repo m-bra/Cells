@@ -1,5 +1,5 @@
-#include "linmath.h"
-#include "math.h"
+#include <glm/glm.hpp>
+#include <cmath>
 #include "physics.hpp"
 #include "quad_tree.h"
 #include <algorithm>
@@ -14,9 +14,8 @@ void apply_spring_force(Body *body0, Body *body1,
         float distance, float base_force, int repulsion, 
         float time)
 {   
-    vec2 sub;
-    vec2_sub(sub, body1->pos, body0->pos);
-    float dist = vec2_len(sub);
+    glm::vec2 sub = body1->pos - body0->pos;
+    float dist = glm::length(sub);
     float stretch_factor = 
         dist - body_radius(body0) - body_radius(body1) - distance;
     if (repulsion)
@@ -25,15 +24,20 @@ void apply_spring_force(Body *body0, Body *body1,
         stretch_factor = fmaxf(stretch_factor, 0);
     float force = base_force * stretch_factor; 
 
-    vec2 force_vec;
-    vec2_scale(force_vec, sub, force / dist);
+    glm::vec2 force_vec = sub * (force / dist);
+    body0->vel+= force_vec * (time / body0->mass);
+    body1->vel-= force_vec * (time / body1->mass);
+}
 
-    vec2 vel_vec;
-    vec2_scale(vel_vec, force_vec, time / body0->mass);
-    vec2_add(body0->vel, body0->vel, vel_vec);
-
-    vec2_scale(vel_vec, force_vec, time / body1->mass);
-    vec2_sub(body1->vel, body1->vel, vel_vec);
+/// applies torque on both bodies to achieve the target delta angle
+void apply_angle_force(Body *body0, Body *body1,
+		       float target_delta_angle,
+		       float force_per_error, float time)
+{
+    float error = (body1->angle - target_delta_angle) - body0->angle;
+    float correction = error * force_per_error;
+    body0->angle_vel+= correction * time / body0->mass;
+    body1->angle_vel-= correction * time / body1->mass;
 }
 
 void apply_attachment_forces(Attachment *attachments, int attachment_count, float time, float base_force)
@@ -42,11 +46,26 @@ void apply_attachment_forces(Attachment *attachments, int attachment_count, floa
     {
         Body *body0 = attachments[i].bodies[0];
         Body *body1 = attachments[i].bodies[1];
-        apply_spring_force(
+	apply_spring_force(
                 body0, body1, 
                 attachments[i].distance, 
                 base_force * attachments[i].strength, 
                 0, time);
+	if (!isnan(attachments[i].delta_angle))
+	    apply_angle_force(
+		body0, body1,
+		attachments[i].delta_angle,
+		base_force / 2, time);
+    }
+}
+
+
+void apply_damping(Body *bodies, int body_count, float decay_per_second, float time)
+{
+    for (Body *body = &bodies[0]; body != &bodies[body_count]; ++body)
+    {
+	body->vel*= pow(decay_per_second, time);
+	body->angle_vel*= pow(decay_per_second, time);
     }
 }
 
@@ -157,14 +176,13 @@ void apply_velocities(BodyRooms *rooms, Body *bodies, int body_count, float time
 {
     for (Body *body = bodies; body != &bodies[body_count]; ++body)
     {
-        vec2 tmp;
-        vec2_scale(tmp, body->vel, time);
-        vec2_add(body->pos, body->pos, tmp);
+	body->pos+= body->vel * time;
+	body->angle+= body->angle_vel * time;
         ensure_inside_bounds(0, 0, rooms->room_width * ROOMS_X, rooms->room_height * ROOMS_Y, body);
     }
 }
 
-void ensure_inside_bounds(float left, float right, float top, float bottom, Body *body)
+void ensure_inside_bounds(float left, float bottom, float right, float top, Body *body)
 {
     if (body->pos[0] < left)
         body->pos[0] = left;
@@ -174,5 +192,76 @@ void ensure_inside_bounds(float left, float right, float top, float bottom, Body
         body->pos[1] = bottom;
     if (body->pos[1] > top)
         body->pos[1] = top;
+}
+
+void init_physics(PhysicsWorld *world)
+{
+    world->body_rooms.room_width = world->body_rooms.room_height = 5;
+
+    Body body0;
+    body0.pos[0] = 0.5;
+    body0.pos[1] = 0.5;
+    body0.angle = 0;
+    body0.vel[0] = body0.vel[1] = 0;
+    body0.mass = 1;
+    body0.mass_per_radius = 1;
+    // set to wrong position to force update
+    body0.room_x = body0.room_y = 10;
+    world->bodies.push_back(body0);
+
+    Body body1;
+    body1.pos[0] = 3;
+    body1.pos[1] = 3;
+    body1.angle = 0;
+    body1.vel[0] = body1.vel[1] = 0;
+    body1.mass = 1;
+    body1.mass_per_radius = 1;
+    // set to wrong position to force update
+    body1.room_x = body1.room_y = 10;
+    world->bodies.push_back(body1);
+
+    Body body2;
+    body2.pos[0] = 3.5;
+    body2.pos[1] = 3;
+    body2.angle = 0;
+    body2.vel[0] = body2.vel[1] = 0;
+    body2.mass = 1;
+    body2.mass_per_radius = 1;
+    // set to wrong position to force update
+    body2.room_x = body2.room_y = 10;
+    world->bodies.push_back(body2);
+
+    Attachment attachment;
+    attachment.strength = 1;
+    attachment.delta_angle = M_PI;
+    attachment.distance = .01;
+    attachment.bodies[0] = &world->bodies[0];
+    attachment.bodies[1] = &world->bodies[1];
+    world->attachments.push_back(attachment);
+
+    attachment.bodies[0] = &world->bodies[2];
+    attachment.delta_angle = NAN;
+    world->attachments.push_back(attachment);
+
+    attachment.bodies[1] = &world->bodies[0];
+    world->attachments.push_back(attachment);
+
+    for (Body &body: world->bodies)
+        update_body_room(&world->body_rooms, &body);
+}
+
+void update_physics(PhysicsWorld *world, float elapsed_time)
+{
+    float base_repulsion_force = 2 / 0.1;
+    float base_attachment_force = 5 / 0.5;
+    float decay_per_second = 0.3;
+
+    apply_repulsion_forces(&world->body_rooms, base_repulsion_force, elapsed_time);
+    apply_attachment_forces(world->attachments.data(), world->attachments.size(), elapsed_time, base_attachment_force);
+    apply_velocities(&world->body_rooms, world->bodies.data(), world->bodies.size(), elapsed_time);
+    apply_damping(world->bodies.data(), world->bodies.size(), decay_per_second, elapsed_time);
+    
+    for (Body &body: world->bodies)
+        update_body_room(&world->body_rooms, &body);
 }
 
