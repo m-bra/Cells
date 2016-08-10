@@ -44,7 +44,7 @@ int main(int argc, char **argv)
 	update_physics(&world, elapsed_time);
 	
 	// graphics
-	render(&graphics, world.bodies.data(), world.bodies.size());
+	render(&graphics, &world);
 	
 	glfwSwapBuffers(window);
 	glfwPollEvents();

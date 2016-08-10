@@ -29,18 +29,18 @@ struct Attachment
     Body *bodies[2];
 };
 
-typedef struct
+struct BodyRooms
 {
     std::vector<Body *> rooms[ROOMS_X][ROOMS_Y];
     float room_width, room_height;
-} BodyRooms;
+};
 
-typedef struct
+struct PhysicsWorld
 {
     std::vector<Body> bodies;
     std::vector<Attachment> attachments;
     BodyRooms body_rooms;
-} PhysicsWorld;
+};
 
 static inline float body_radius(const Body *body)
 {

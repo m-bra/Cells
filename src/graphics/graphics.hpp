@@ -11,6 +11,7 @@ struct ProgramVars
     gll::Attribute vertXYZ;
     gll::Attribute vertUV;
     gll::Uniform tex;
+    gll::Uniform tex_off_x;
 };
 
 struct Model
@@ -21,11 +22,11 @@ struct Model
 struct Graphics
 {
     ProgramVars program_vars;
-    std::vector<Model> models;
-    GLuint tex;
+    Model cell_model, attachment_model;
+    GLuint cell_tex, attachment_tex;
 };
 
 void init_graphics(Graphics *graphics);
-void render(Graphics *graphics, struct Body *bodies, int body_count);
+void render(Graphics *graphics, struct PhysicsWorld *world);
 
 #endif
