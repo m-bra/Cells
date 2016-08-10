@@ -52,8 +52,6 @@ int main(int argc, char **argv)
     {
 	double elapsed_time = glfwGetTime() - frame_start;
 	frame_start+= elapsed_time;
-	std::cout << "Framestart: " << frame_start
-		  << "s; glfwGetTime: " << glfwGetTime() << "s\n";
 	
 	// physics
 	apply_repulsion_forces(&body_rooms, base_repulsion_force, elapsed_time);
@@ -64,7 +62,7 @@ int main(int argc, char **argv)
             update_body_room(&body_rooms, &body);
 
 	// graphics
-	render(&graphics);
+	render(&graphics, world.bodies.data(), world.bodies.size());
 	
 	glfwSwapBuffers(window);
 	glfwPollEvents();

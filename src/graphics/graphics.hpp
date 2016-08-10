@@ -26,6 +26,6 @@ struct Graphics
 };
 
 void init_graphics(Graphics *graphics);
-void render(Graphics *graphics);
+void render(Graphics *graphics, struct Body *bodies, int body_count);
 
 #endif

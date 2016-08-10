@@ -2,8 +2,10 @@
 #include "graphics.hpp"
 #include <cmath>
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include "CImg.h"
 #include "Logger.hpp"
+#include "physics/physics.hpp"
 
 using namespace cimg_library;
 
@@ -136,7 +138,7 @@ void init_graphics(Graphics *graphics)
     delete[] pixels;
 }
 
-void render(Graphics *graphics)
+void render(Graphics *graphics, Body *bodies, int body_count)
 {
     glClearColor(.1, 1, .1, 1);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -144,9 +146,18 @@ void render(Graphics *graphics)
     glUniform1i(graphics->program_vars.tex, 0);
     glActiveTexture(GL_TEXTURE0 + 0);
     glBindTexture(GL_TEXTURE_2D, graphics->tex);
-    
-    glm::mat4 ident = glm::mat4(1.0);
-    glUniformMatrix4fv(graphics->program_vars.mvp, 1, false, &ident[0][0]);
-    glBindVertexArray(graphics->models[0].vao);
-    glDrawArrays(GL_TRIANGLE_FAN, 0, 20 + 1);
+
+    glm::mat4 view = glm::scale(glm::mat4(), glm::vec3(1 / 10.f, 1 / 10.f, 1 / 10.f));
+    view = glm::translate(view, glm::vec3(-5, -5, 0));
+
+    for (int i = 0; i < body_count; ++i)
+    {
+	float r = body_radius(&bodies[i]);
+	glm::mat4 model = glm::scale(glm::mat4(), glm::vec3(r, r, r));
+	model = glm::translate(model, glm::vec3(bodies[i].pos.x, bodies[i].pos.y, 0.f));
+	glm::mat4 mvp = view * model;
+	glUniformMatrix4fv(graphics->program_vars.mvp, 1, false, &mvp[0][0]);
+	glBindVertexArray(graphics->models[0].vao);
+	glDrawArrays(GL_TRIANGLE_FAN, 0, 20 + 1);
+    }
 }
