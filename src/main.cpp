@@ -52,7 +52,8 @@ int main(int argc, char **argv)
     {
 	double elapsed_time = glfwGetTime() - frame_start;
 	frame_start+= elapsed_time;
-	std::cout << "Framestart: " << frame_start << "s; glfwGetTime: " << glfwGetTime() << "s";
+	std::cout << "Framestart: " << frame_start
+		  << "s; glfwGetTime: " << glfwGetTime() << "s\n";
 	
 	// physics
 	apply_repulsion_forces(&body_rooms, base_repulsion_force, elapsed_time);
