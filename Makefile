@@ -1,6 +1,6 @@
 EXECUTABLE=organisms
 SOURCES=src/main.cpp src/physics/physics.cpp src/graphics/graphics.cpp GLL++/Program.cpp shared/Logger.cpp
-HEADERS=src/util/vector.h src/linmath.h src/physics/physics.hpp src/util/util.h shared/sleep.h GLL++/GLL/GLL.hpp shared/Logger.hpp shared/optional.hpp
+HEADERS=src/physics/physics.hpp shared/sleep.h GLL++/GLL/GLL.hpp shared/Logger.hpp shared/Optional.hpp shared/Iterator.hpp
 CC=g++
 CFLAGS=-g -Dcimg_display=0
 LDFLAGS=`pkg-config --static --libs glfw3` -lglbinding

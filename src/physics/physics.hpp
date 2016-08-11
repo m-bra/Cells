@@ -59,21 +59,20 @@ inline float body_radius(Body const &body)
 inline Body &body_of(PhysicsWorld &world, int i)
 {
     assert(!world.bodies[i].empty);
-    return world.bodies[i].value;
+    return world.bodies[i].value();
 }
 
 template <typename T>
 struct OptNotEmpty
-{   typedef bool Result;
-    bool operator()(Optional<T> &body) {return !body.empty;}};
+{ bool operator()(Optional<T> *opt) {return !opt->empty;}};
 template <typename T>
 struct UnwrapOpt
-{   typedef T Result;
-    T operator()(Optional<T> body) {return body.value;}};
+{   typedef T *Result;
+    T *operator()(Optional<T> *opt) {return &opt->value();}};
 
 template <typename T>
 using SlotIterator = Iterator<
-    MapIterator<FilterIterator<RawIterator<Optional<T>>, OptNotEmpty<T>>, UnwrapOpt<T>>>;
+    MapIterator<UnwrapOpt<T>, FilterIterator<OptNotEmpty<T>, RawIterator<Optional<T>>>>>;
 
 inline SlotIterator<Body> iter_bodies(PhysicsWorld &world)
 {

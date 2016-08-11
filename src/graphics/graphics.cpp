@@ -203,10 +203,10 @@ void render(Graphics *graphics, PhysicsWorld *world)
     view = glm::translate(view, glm::vec3(-5, -5, 0));
 
     glBindTexture(GL_TEXTURE_2D, graphics->attachment_tex);
-    for (Attachment &attachment: world->attachments)
+    iter_attachments(*world).do_each([&](Attachment *attachment)
     {
-	Body *body0 = attachment.bodies[0];
-	Body *body1 = attachment.bodies[1];
+	Body *body0 = attachment->bodies[0];
+	Body *body1 = attachment->bodies[1];
 	
 	glm::vec2 sub = body1->pos - body0->pos;
 	glm::vec3 sub3(sub.x, sub.y, 0);
@@ -226,20 +226,19 @@ void render(Graphics *graphics, PhysicsWorld *world)
 	glUniformMatrix4fv(graphics->program_vars.mvp, 1, false, &mvp[0][0]);
 	glBindVertexArray(graphics->attachment_model.vao);
 	glDrawArrays(GL_TRIANGLES, 0, 6);
-    }
+    });
     
     glBindTexture(GL_TEXTURE_2D, graphics->cell_tex);
 
-    for (int i = 0; i < (int) world->bodies.size(); ++i)
+    iter_bodies(*world).do_each([&](Body *body)
     {
-	Body const &body = world->bodies[i].assert_value();
-	float r = body_radius(body);
+	float r = body_radius(*body);
 	glm::mat4 model = glm::scale(glm::mat4(), glm::vec3(r, r, r));
-	model = glm::translate(model, glm::vec3(body.pos.x, body.pos.y, 0.f));
-	model = glm::rotate(model, body.angle, glm::vec3(0, 0, 1));
+	model = glm::translate(model, glm::vec3(body->pos.x, body->pos.y, 0.f));
+	model = glm::rotate(model, body->angle, glm::vec3(0, 0, 1));
        	glm::mat4 mvp = view * model;
 	glUniformMatrix4fv(graphics->program_vars.mvp, 1, false, &mvp[0][0]);
 	glBindVertexArray(graphics->cell_model.vao);
 	glDrawArrays(GL_TRIANGLE_FAN, 0, 20 + 1);
-    }
+    });
 }

@@ -24,7 +24,7 @@ int get_empty_cell_slot(LogicWorld *world)
 void update_cell(LogicWorld *logic, PhysicsWorld physics, int cell_i, float time)
 {
     assert(!logic->cells[cell_i].empty);
-    Cell &cell = logic->cells[cell_i].value;
+    Cell &cell = logic->cells[cell_i].value();
     cell.life_time+= time;
     
     switch (cell.type->tag)
