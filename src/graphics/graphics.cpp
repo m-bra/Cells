@@ -232,11 +232,11 @@ void render(Graphics *graphics, PhysicsWorld *world)
 
     for (int i = 0; i < (int) world->bodies.size(); ++i)
     {
-	Body *bodies = &world->bodies[0];
-	float r = body_radius(&bodies[i]);
+	Body const &body = world->bodies[i].assert_value();
+	float r = body_radius(body);
 	glm::mat4 model = glm::scale(glm::mat4(), glm::vec3(r, r, r));
-	model = glm::translate(model, glm::vec3(bodies[i].pos.x, bodies[i].pos.y, 0.f));
-	model = glm::rotate(model, bodies[i].angle, glm::vec3(0, 0, 1));
+	model = glm::translate(model, glm::vec3(body.pos.x, body.pos.y, 0.f));
+	model = glm::rotate(model, body.angle, glm::vec3(0, 0, 1));
        	glm::mat4 mvp = view * model;
 	glUniformMatrix4fv(graphics->program_vars.mvp, 1, false, &mvp[0][0]);
 	glBindVertexArray(graphics->cell_model.vao);

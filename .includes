@@ -2,4 +2,4 @@
 -I%PROJECT%/shared
 -I%PROJECT%/GLL++
 -xc++
--std=c++11
+-std=c++1z
