@@ -40,11 +40,22 @@ void apply_angle_force(Body *body0, Body *body1,
     body1->angle_vel-= correction * time / body1->mass;
 }
 
+void check_back_refs(Attachment const *attachment)
+{
+    for (int i = 0; i != 2; ++i)
+    {
+	auto &back_refs = attachment->bodies[i]->attachments;
+	assert(std::find(back_refs.begin(), back_refs.end(), attachment) != back_refs.end());
+    }
+}
+
 void apply_attachment_forces(PhysicsWorld *world, float time, float base_force)
 {
     world->attachments.iter().do_each(
 	[&](Attachment *attachment)
 	{
+	    check_back_refs(attachment);
+	    
 	    Body *body0 = &*attachment->bodies[0];
 	    Body *body1 = &*attachment->bodies[1];
  	    apply_spring_force(
@@ -249,16 +260,22 @@ void init_physics(PhysicsWorld *world)
     attachment.config.distance = .01; 
     attachment.bodies[0] = &id0->value();
     attachment.bodies[1] = &id1->value();
-    world->attachments.add(attachment);
+    Slot<Attachment> *at0 = world->attachments.add(attachment);
+    id0->value().attachments.push_back(&at0->value());
+    id1->value().attachments.push_back(&at0->value());
     
     attachment.config.delta_angle = NAN;
     attachment.bodies[0] = &id1->value();
     attachment.bodies[1] = &id2->value();
-    world->attachments.add(attachment);
-
+    Slot<Attachment> *at1 = world->attachments.add(attachment);
+    id1->value().attachments.push_back(&at1->value());
+    id2->value().attachments.push_back(&at1->value());
+    
     attachment.bodies[0] = &id2->value();
     attachment.bodies[1] = &id0->value();
-    world->attachments.add(attachment);
+    Slot<Attachment> *at2 = world->attachments.add(attachment);
+    id2->value().attachments.push_back(&at2->value());
+    id0->value().attachments.push_back(&at2->value());
 
     update_all_body_rooms(world);
 }
