@@ -2,7 +2,12 @@
 #define LOGIC_HPP_INCLUDED
 
 #include <physics/physics.hpp>
-#include "optional.hpp"
+#include "Optional.hpp"
+#include "slots.hpp"
+#include <map>
+
+#define MAX_CELLS 500
+#define MAX
 
 struct StemCell
 {
@@ -37,27 +42,10 @@ struct CellType
     };
 };
 
-struct LogicAttachment
-{
-    Attachment *physics;
-    
-};
-
-struct CellId
-{
-    struct Optional<Cell> *_ptr;
-};
-
 struct Cell
 {
     CellType *type;
-    BodyId body;
-    /// The cells this cell is attached to
-    /// order is important! the indices of the cell ids in this vector
-    /// are used by the STEM_CELL CellType variant (->passed_attachments), for example
-    /// The order of the attachments in this vector is the order
-    /// the attachments have been passed along this cell and its ancestors
-    std::vector<CellId> attachments;
+    Slot<Body> *body;
     /// how long this cell is living now (seconds)
     float life_time;
 };
@@ -65,7 +53,7 @@ struct Cell
 struct LogicWorld
 {
     /// order matters.
-    std::vector<Optional<Cell>> cells;
+    Slots<Cell, MAX_CELLS> cells;
     /// The cell types inside this vector reference each other.
     /// If a cell type is referenced by no cell and no other cell type
     /// then that cell type is leaked. garbage. dead.
