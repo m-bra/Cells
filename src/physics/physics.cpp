@@ -3,6 +3,7 @@
 #include "physics.hpp"
 #include <algorithm>
 #include <vector>
+#include "Iterator.hpp"
 
 /// Apply a spring force between two bodies that either only repulses or only attracts (controlled by boolean "repulsion")
 /// "distance" is the preferred distance between the two bodies.
@@ -16,7 +17,7 @@ void apply_spring_force(Body *body0, Body *body1,
     glm::vec2 sub = body1->pos - body0->pos;
     float dist = glm::length(sub);
     float stretch_factor = 
-        dist - body_radius(*body0) - body_radius(*body1) - distance;
+        dist - body0->radius() - body1->radius() - distance;
     if (repulsion)
         stretch_factor = fminf(stretch_factor, 0);    
     else
@@ -41,12 +42,12 @@ void apply_angle_force(Body *body0, Body *body1,
 
 void apply_attachment_forces(PhysicsWorld *world, float time, float base_force)
 {
-    iter_attachments(*world).do_each(
+    world->attachments.iter().do_each(
 	[&](Attachment *attachment)
 	{
-	    Body *body0 = attachment->bodies[0];
-	    Body *body1 = attachment->bodies[1];
-	    apply_spring_force(
+	    Body *body0 = &*attachment->bodies[0];
+	    Body *body1 = &*attachment->bodies[1];
+ 	    apply_spring_force(
                 body0, body1, 
                 attachment->config.distance, 
                 base_force * attachment->config.strength, 
@@ -62,7 +63,7 @@ void apply_attachment_forces(PhysicsWorld *world, float time, float base_force)
 
 void apply_damping(PhysicsWorld *world, float decay_per_second, float time)
 {
-    iter_bodies(*world).do_each([&](Body *body)
+    world->bodies.iter().do_each([&](Body *body)
         {
 	    body->vel*= pow(decay_per_second, time);
 	    body->angle_vel*= pow(decay_per_second, time);		    
@@ -108,7 +109,7 @@ void update_body_room(PhysicsWorld *world, Body *body)
 
 void update_all_body_rooms(PhysicsWorld *world)
 {
-    iter_bodies(*world).do_each([&](Body *body) {update_body_room(world, body);});
+    world->bodies.iter().do_each([&](Body *body) {update_body_room(world, &*body);});
 }
 
 /// i=0: small x
@@ -197,11 +198,11 @@ void apply_velocities(PhysicsWorld *world, float time)
     auto room_width = world->body_rooms.room_width;
     auto room_height = world->body_rooms.room_height;
 
-    iter_bodies(*world).do_each([&](Body *body)
+    world->bodies.iter().do_each([&](Body *body)
         {
 	    body->pos+= body->vel * time;
 	    body->angle+= body->angle_vel * time;
-	    ensure_inside_bounds(0, 0, room_width * ROOMS_X, room_height * ROOMS_Y, body);
+	    ensure_inside_bounds(0, 0, room_width * ROOMS_X, room_height * ROOMS_Y, &*body);
 	});
 }
 
@@ -218,7 +219,7 @@ void init_physics(PhysicsWorld *world)
     body0.mass_per_radius = 1;
     // set to wrong position to force update
     body0.room_x = body0.room_y = 10;
-    world->bodies.push_back(Optional<Body>(body0));
+    Slot<Body> *id0 = world->bodies.add(body0);
 
     Body body1;
     body1.pos[0] = 3;
@@ -229,7 +230,7 @@ void init_physics(PhysicsWorld *world)
     body1.mass_per_radius = 1;
     // set to wrong position to force update
     body1.room_x = body1.room_y = 10;
-    world->bodies.push_back(Optional<Body>(body1));
+    Slot<Body> *id1 = world->bodies.add(body1);
 
     Body body2;
     body2.pos[0] = 3.5;
@@ -240,22 +241,24 @@ void init_physics(PhysicsWorld *world)
     body2.mass_per_radius = 1;
     // set to wrong position to force update
     body2.room_x = body2.room_y = 10;
-    world->bodies.push_back(Optional<Body>(body2));
+    Slot<Body> *id2 = world->bodies.add(body2);
 
-    Attachment attachment;
-    attachment.config.strength = 1;
-    attachment.config.delta_angle = M_PI;
-    attachment.config.distance = .01;
-    attachment.bodies[0] = &world->bodies[0].value();
-    attachment.bodies[1] = &world->bodies[1].value();
-    world->attachments.push_back(attachment);
-
-    attachment.bodies[0] = &world->bodies[2].value();
+    Attachment attachment; 
+    attachment.config.strength = 1; 
+    attachment.config.delta_angle = M_PI; 
+    attachment.config.distance = .01; 
+    attachment.bodies[0] = &id0->value();
+    attachment.bodies[1] = &id1->value();
+    world->attachments.add(attachment);
+    
     attachment.config.delta_angle = NAN;
-    world->attachments.push_back(attachment);
+    attachment.bodies[0] = &id1->value();
+    attachment.bodies[1] = &id2->value();
+    world->attachments.add(attachment);
 
-    attachment.bodies[1] = &world->bodies[0].value();
-    world->attachments.push_back(attachment);
+    attachment.bodies[0] = &id2->value();
+    attachment.bodies[1] = &id0->value();
+    world->attachments.add(attachment);
 
     update_all_body_rooms(world);
 }
@@ -272,5 +275,19 @@ void update_physics(PhysicsWorld *world, float elapsed_time)
     apply_damping(world, decay_per_second, elapsed_time);
     
     update_all_body_rooms(world);
+}
+
+Optional<Attachment *> find_attachment(PhysicsWorld &world, Body *a, Body *b)
+{   
+    auto it = world.attachments.iter()
+        .filter([&](Attachment *attachment)
+	{
+	    return attachment->bodies[0] == a && attachment->bodies[1] == b;
+ 	});
+
+    Optional<Attachment *> needle = it.next();
+    assert(it.next().empty);
+
+    return needle;
 }
 

@@ -34,11 +34,14 @@ void update_cell(LogicWorld *logic, PhysicsWorld physics, int cell_i, float time
 	float const split_cool_down = 3;
 		
 	StemCell &stem_cell = cell.type->stem_cell;
-	float parent_mass = cell.body->mass;
+	float parent_mass = cell.body->value().mass;
        	if (cell.life_time > split_cool_down && parent_mass > stem_cell.min_split_mass)
 	{
 	    float child0_mass = stem_cell.child0_amount * parent_mass;
 	    float child1_mass = parent_mass - child0_mass;
+
+	    // commit suicide
+	    cell.body->empty = true;
 	}
 	break;    
     }

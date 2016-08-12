@@ -203,7 +203,7 @@ void render(Graphics *graphics, PhysicsWorld *world)
     view = glm::translate(view, glm::vec3(-5, -5, 0));
 
     glBindTexture(GL_TEXTURE_2D, graphics->attachment_tex);
-    iter_attachments(*world).do_each([&](Attachment *attachment)
+    world->attachments.iter().do_each([&](Attachment *attachment)
     {
 	Body *body0 = attachment->bodies[0];
 	Body *body1 = attachment->bodies[1];
@@ -230,9 +230,9 @@ void render(Graphics *graphics, PhysicsWorld *world)
     
     glBindTexture(GL_TEXTURE_2D, graphics->cell_tex);
 
-    iter_bodies(*world).do_each([&](Body *body)
+    world->bodies.iter().do_each([&](Body *body)
     {
-	float r = body_radius(*body);
+	float r = body->radius();
 	glm::mat4 model = glm::scale(glm::mat4(), glm::vec3(r, r, r));
 	model = glm::translate(model, glm::vec3(body->pos.x, body->pos.y, 0.f));
 	model = glm::rotate(model, body->angle, glm::vec3(0, 0, 1));

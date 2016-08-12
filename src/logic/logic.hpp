@@ -37,16 +37,27 @@ struct CellType
     };
 };
 
+struct LogicAttachment
+{
+    Attachment *physics;
+    
+};
+
+struct CellId
+{
+    struct Optional<Cell> *_ptr;
+};
+
 struct Cell
 {
     CellType *type;
-    Body *body;
-    /// All attachments that reference this cell's body
-    /// order is important! the indices of the attachment pointers in this vector
+    BodyId body;
+    /// The cells this cell is attached to
+    /// order is important! the indices of the cell ids in this vector
     /// are used by the STEM_CELL CellType variant (->passed_attachments), for example
     /// The order of the attachments in this vector is the order
     /// the attachments have been passed along this cell and its ancestors
-    std::vector<Attachment *> attachments;
+    std::vector<CellId> attachments;
     /// how long this cell is living now (seconds)
     float life_time;
 };
@@ -59,6 +70,8 @@ struct LogicWorld
     /// If a cell type is referenced by no cell and no other cell type
     /// then that cell type is leaked. garbage. dead.
     std::vector<CellType> cell_types;
+
+    
 };
 
 #endif
