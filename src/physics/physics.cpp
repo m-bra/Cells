@@ -158,7 +158,7 @@ void apply_repulsion_forces(PhysicsWorld *world, float base_force, float time)
                 float coord = (*body)->pos[dir / 2];
                 float abs_room_edge = coord + 
                     room_edge(rooms->room_width, rooms->room_height, dir);
-                if (fabsf(coord - abs_room_edge) < body_radius(**body))
+                if (fabsf(coord - abs_room_edge) < (*body)->radius())
                 {
                     int other_room_x = i;
                     int other_room_y = j;
