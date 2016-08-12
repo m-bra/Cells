@@ -1,5 +1,9 @@
 -I%PROJECT%/src
--I%PROJECT%/shared
 -I%PROJECT%/GLL++
+-I%PROJECT%/../shared/algebraic/1/
+-I%PROJECT%/../shared/sleep/1/
+-I%PROJECT%/../shared/Logger/1/
+-I%PROJECT%/../shared/slots/1/
+-I%PROJECT%/../shared/cimg/1/
 -xc++
 -std=c++1z
