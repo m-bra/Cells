@@ -3,7 +3,6 @@
 
 #include <glm/glm.hpp>
 #include <vector>
-#include <algorithm>
 #include "Optional.hpp"
 #include "Iterator.hpp"
 #include "slots.hpp"
@@ -21,8 +20,6 @@ struct Body
     /// The "density" of the body.
     float mass_per_radius;
     int room_x, room_y;
-    /// back-reference to all the attachments that reference this body.
-    std::vector<struct Attachment *> attachments;
 
     float radius()
     {
