@@ -1,7 +1,7 @@
 EXECUTABLE=organisms
-SOURCES=src/main.cpp src/physics/physics.cpp src/graphics/graphics.cpp GLL++/Program.cpp
+SOURCES=src/main.cpp src/physics/physics.cpp src/graphics/graphics.cpp GLL++/Program.cpp src/logic/logic.cpp
 SHARED=../shared
-HEADERS=src/physics/physics.hpp $(SHARED)/sleep/1/sleep.h GLL++/GLL/GLL.hpp $(SHARED)/Logger/1/Logger.hpp $(SHARED)/algebraic/1/Optional.hpp $(SHARED)/algebraic/1/Iterator.hpp $(SHARED)/slots/1/slots.hpp
+HEADERS=src/physics/physics.hpp $(SHARED)/sleep/1/sleep.h GLL++/GLL/GLL.hpp $(SHARED)/Logger/1/Logger.hpp $(SHARED)/algebraic/1/Optional.hpp $(SHARED)/algebraic/1/Iterator.hpp $(SHARED)/slots/1/slots.hpp src/logic/logic.hpp
 CC=g++
 CFLAGS=-g -Dcimg_display=0
 LDFLAGS=`pkg-config --static --libs glfw3` -lglbinding

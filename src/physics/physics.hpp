@@ -49,6 +49,10 @@ struct Attachment
 /// Space partitioning. Only references Bodies, does not own them.
 struct BodyRooms
 {
+    /// Guarantee to the user that every room has a positive coordinate
+    /// This makes it possible for the user to use negative coords for
+    /// placeholders for "missing coord"
+    static constexpr bool no_negative_rooms = true;
     std::vector<Body *> rooms[ROOMS_X][ROOMS_Y];
     float room_width, room_height;
 };
@@ -66,5 +70,6 @@ struct PhysicsWorld
 
 void init_physics(PhysicsWorld *world);
 void update_physics(PhysicsWorld *world, float elapsed_time);
+void calc_body_room(PhysicsWorld *world, Body *body, int *room_x, int *room_y);
 
 #endif

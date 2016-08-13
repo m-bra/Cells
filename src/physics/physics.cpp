@@ -70,10 +70,10 @@ void apply_damping(PhysicsWorld *world, float decay_per_second, float time)
         });
 }
 
-void calc_body_room(BodyRooms *rooms, Body *body, int *room_x, int *room_y)
+void calc_body_room(PhysicsWorld *world, Body *body, int *room_x, int *room_y)
 {
-    *room_x = floorf(body->pos[0] / rooms->room_width);
-    *room_y = floorf(body->pos[1] / rooms->room_height);
+    *room_x = floorf(body->pos[0] / world->body_rooms.room_width);
+    *room_y = floorf(body->pos[1] / world->body_rooms.room_height);
     if (*room_x < 0) *room_x = 0;
     if (*room_x >= ROOMS_X) *room_x = ROOMS_X - 1;
     if (*room_y < 0) *room_y = 0;
@@ -88,7 +88,7 @@ void update_body_room(PhysicsWorld *world, Body *body)
     BodyRooms *rooms = &world->body_rooms;
     
     int room_x, room_y;
-    calc_body_room(rooms, body, &room_x, &room_y);
+    calc_body_room(world, body, &room_x, &room_y);
 
     if (room_x != body->room_x || room_y != body->room_y)
     {
@@ -289,5 +289,5 @@ Optional<Attachment *> find_attachment(PhysicsWorld &world, Body *a, Body *b)
     assert(it.next().empty);
 
     return needle;
-}
+} 
 
