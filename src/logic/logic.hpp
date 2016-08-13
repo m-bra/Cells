@@ -25,7 +25,7 @@ struct StemCell
     /// (with respect to the parent angle)
     /// this member specifies the orientations of the children RELATIVE to the parental cell
     float children_angles[2];
-    std::shared_ptr<struct CellType> children_types[2];
+    Slot<struct CellType> *children_types[2];
     float min_split_mass;
     /// How much of the parental mass the first child gets (the rest will be given to the other)
     /// relative statement; thus logically valid range is zero to one
@@ -34,7 +34,7 @@ struct StemCell
 
 struct CellType
 {
-    enum
+    enum CellTypeTag
     {
 	STEM_CELL,
     } tag;
@@ -44,6 +44,27 @@ struct CellType
 	/// the stem cell will split into two new cells,	
 	StemCell stem_cell;
     };
+
+    CellType(CellTypeTag a_tag)
+    {
+	tag = a_tag;
+	switch (tag)
+	{
+	case STEM_CELL:
+	    stem_cell = StemCell();
+	    break;
+	}
+    }
+
+    ~CellType()
+    {
+	switch (tag)
+	{
+	case STEM_CELL:
+	    stem_cell.~StemCell();
+	    break;
+	}
+    }
 };
 
 /// One-sided attachment reference.
@@ -55,7 +76,7 @@ struct LogicAttachment
 
 struct Cell
 {
-    std::shared_ptr<CellType> type;
+    Slot<CellType> *type;
     Slot<Body> *body_slot;
     // order matters. the attachment indices are used by stem_cell for attachment propagation
     // however, to be able to remove an attachment, the elements are optionals
@@ -65,13 +86,14 @@ struct Cell
 
     Body &body()
     {
-	return body_slot->value();
+	return body_slot->assert_value();
     }
 };
 
 struct LogicWorld
 {
     Slots<Cell, MAX_CELLS> cells;
+    Slots<CellType, MAX_CELL_TYPES> cell_types;
 };
 
 #endif

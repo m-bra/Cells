@@ -38,6 +38,56 @@ void kill_cell(Slot<Cell> *slot)
     slot->empty = true;
 }
 
+bool are_cells_logic_attached(Cell *a, Cell *b)
+{
+    size_t occurences = !iter(a->attachments)
+	.filter([&](Optional<LogicAttachment> const &la)
+		{
+		    if (la.empty)
+			return false;
+		    return la.value().other_cell == b;
+		})
+	.count();
+    assert(occurences < 2);
+    
+    assert(iter(b->attachments)
+	   .filter([&](Optional<LogicAttachment> const &la)
+		   {
+		       if (la.empty)
+			   return false;
+		       return la.value().other_cell == a;
+		   })
+	   .count() == occurences);
+
+    return occurences == 1;
+}
+
+void attach_cells(LogicWorld *, PhysicsWorld *physics,
+		  Cell *cell0_ptr, Cell *cell1_ptr,
+                  AttachmentConfig const &config)
+{
+    Cell &cell0 = *cell0_ptr;
+    Cell &cell1 = *cell1_ptr;
+    assert(find_attachment(*physics, &cell0.body(),
+			             &cell1.body()
+	                  ).empty);
+    assert(!are_cells_logic_attached(&cell0, &cell1));
+    
+    Attachment att;
+    att.config = config;
+    att.bodies[0] = &cell0.body();
+    att.bodies[1] = &cell1.body();
+    Slot<Attachment> *att_slot = physics->attachments.add(att);
+
+    LogicAttachment logatt;
+    logatt.other_cell = &cell1;
+    logatt.physics = att_slot;
+    cell0.attachments.push_back(logatt);
+
+    logatt.other_cell = &cell0;
+    cell1.attachments.push_back(logatt);
+}
+
 void update_cell(LogicWorld *logic, PhysicsWorld *physics, Slot<Cell> *slot, float time)
 {
     assert(!slot->empty);
@@ -76,7 +126,8 @@ void update_cell(LogicWorld *logic, PhysicsWorld *physics, Slot<Cell> *slot, flo
 		child_cell.body_slot = child_body_slot;
 		child_cell.life_time = 0;
 		child_cell.attachments.reserve(stem_cell.passed_attachments[i].size() + 1);
-		
+		children[i] = logic->cells.add(child_cell);
+
 		for (int passing_att: stem_cell.passed_attachments[i])
 		{
 		    if (passing_att >= (int)cell.attachments.size())
@@ -84,36 +135,16 @@ void update_cell(LogicWorld *logic, PhysicsWorld *physics, Slot<Cell> *slot, flo
 		    Optional<LogicAttachment> &parent_att = cell.attachments[i];
 		    if (parent_att.empty)
 			continue;
-		    Attachment phyatt;
-		    phyatt.config = parent_att.value().physics->value().config;
-		    phyatt.bodies[0] = &child_body_slot->value();
-		    phyatt.bodies[1] = &parent_att.value().other_cell->body();
-		    Slot<Attachment> *att_slot = physics->attachments.add(phyatt);
 
-		    LogicAttachment child_att;
-		    child_att.other_cell = parent_att.value().other_cell;
-		    child_att.physics = att_slot;
-		    child_cell.attachments.push_back(Optional<LogicAttachment>(child_att));
+		    attach_cells(logic, physics,
+				 &children[i]->value(), parent_att.value().other_cell,
+				 parent_att.value().physics->assert_value().config);
 		}
-		children[i] = logic->cells.add(child_cell);
 	    }
 
 	    if (!stem_cell.optional_child_attachment.empty)
-	    {
-		Attachment phyatt;
-		phyatt.config = stem_cell.optional_child_attachment.value();
-		phyatt.bodies[0] = &children[0]->value().body();
-		phyatt.bodies[1] = &children[1]->value().body();
-		Slot<Attachment> *att_slot = physics->attachments.add(phyatt);
-
-	        for (int i = 0; i != 2; ++i)
-		{
-		    LogicAttachment att;
-		    att.other_cell = &children[1 - i]->value();
-		    att.physics = att_slot;
-		    children[i]->value().attachments.push_back(Optional<LogicAttachment>(att));
-		}
-	    }
+		attach_cells(logic, physics, &children[0]->value(), &children[1]->value(),
+			     stem_cell.optional_child_attachment.value());
 
 	    // martyr mother commits suicide for her children :'(
 	    kill_cell(slot);
