@@ -209,6 +209,7 @@ void apply_velocities(PhysicsWorld *world, float time)
 void init_physics(PhysicsWorld *world)
 {
     world->body_rooms.room_width = world->body_rooms.room_height = 5;
+    return;
 
     Body body0;
     body0.pos[0] = 0.5;

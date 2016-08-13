@@ -6,6 +6,7 @@
 #include "slots.hpp"
 #include <map>
 #include <memory>
+#include <new>
 
 #define MAX_CELLS 500
 #define MAX_LOGIC_ATTACHMENTS 500
@@ -45,13 +46,15 @@ struct CellType
 	StemCell stem_cell;
     };
 
+    CellType(): CellType(STEM_CELL) {}
+
     CellType(CellTypeTag a_tag)
     {
 	tag = a_tag;
 	switch (tag)
 	{
 	case STEM_CELL:
-	    stem_cell = StemCell();
+	    new (&stem_cell) StemCell();
 	    break;
 	}
     }
@@ -64,6 +67,29 @@ struct CellType
 	    stem_cell.~StemCell();
 	    break;
 	}
+    }
+
+    CellType(CellType const &src)
+    {
+	tag = src.tag;
+	switch (tag)
+	{
+	case STEM_CELL:
+	    new (&stem_cell) StemCell(src.stem_cell);
+	    break;
+	}
+    }
+
+    CellType &operator =(CellType &&rhs)
+    {
+	tag = rhs.tag;
+	switch (tag)
+	{
+	case STEM_CELL:
+	    stem_cell = rhs.stem_cell;
+	    break;
+	}
+	return *this;
     }
 };
 
@@ -95,5 +121,8 @@ struct LogicWorld
     Slots<Cell, MAX_CELLS> cells;
     Slots<CellType, MAX_CELL_TYPES> cell_types;
 };
+
+void init_logic_world(LogicWorld *logic, PhysicsWorld *physics);
+void update_logic(LogicWorld *logic, PhysicsWorld *physics, float time);
 
 #endif

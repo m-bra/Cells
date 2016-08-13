@@ -37,7 +37,7 @@ void init_logic_world(LogicWorld *logic, PhysicsWorld *physics)
     first_cell.type = cell_type_slot;
     first_cell.body_slot = body_slot;
     first_cell.life_time = 0;
-    logic->add(first_cell);
+    logic->cells.add(first_cell);
 }
 
 void kill_cell(Slot<Cell> *slot)
@@ -73,22 +73,22 @@ void kill_cell(Slot<Cell> *slot)
 
 bool are_cells_logic_attached(Cell *a, Cell *b)
 {
-    size_t occurences = !iter(a->attachments)
-	.filter([&](Optional<LogicAttachment> const &la)
+    size_t occurences = iter(a->attachments)
+	.filter([&](Optional<LogicAttachment> *const &la)
 		{
-		    if (la.empty)
+		    if (la->empty)
 			return false;
-		    return la.value().other_cell == b;
+		    return la->value().other_cell == b;
 		})
 	.count();
     assert(occurences < 2);
     
     assert(iter(b->attachments)
-	   .filter([&](Optional<LogicAttachment> const &la)
+	   .filter([&](Optional<LogicAttachment> *const &la)
 		   {
-		       if (la.empty)
+		       if (la->empty)
 			   return false;
-		       return la.value().other_cell == a;
+		       return la->value().other_cell == a;
 		   })
 	   .count() == occurences);
 
@@ -123,17 +123,17 @@ void attach_cells(LogicWorld *, PhysicsWorld *physics,
 
 void update_cell(LogicWorld *logic, PhysicsWorld *physics, Slot<Cell> *slot, float time)
 {
-    assert(!slot->empty);
-    Cell &cell = slot->value();
+    Cell &cell = slot->assert_value();
     cell.life_time+= time;
+    CellType &cell_type = cell.type->assert_value();
     
-    switch (cell.type->tag)
+    switch (cell_type.tag)
     {
     case CellType::STEM_CELL:
     {
 	float const split_cool_down = 3;
 		
-	StemCell &stem_cell = cell.type->stem_cell;
+	StemCell &stem_cell = cell_type.stem_cell;
 	float parent_mass = cell.body().mass;
        	if (cell.life_time > split_cool_down && parent_mass > stem_cell.min_split_mass)
 	{
@@ -147,8 +147,8 @@ void update_cell(LogicWorld *logic, PhysicsWorld *physics, Slot<Cell> *slot, flo
 		// just for now
 		child_body.mass = parent_mass;
 		child_body.mass_per_radius = 1;
-		glm::vec2 dir = glm::vec2(cos(cell.body().angle + M_PI * (i * 2 - 1)),
-		                          sin(cell.body().angle + M_PI * (i * 2 - 1)))
+		glm::vec2 dir = glm::vec2(cos(cell.body().angle + 0.5 * M_PI * (i * 2 - 1)),
+		                          sin(cell.body().angle + 0.5 * M_PI * (i * 2 - 1)))
 		                * child_body.radius();
 		child_body.pos = cell.body().pos + dir;
 		child_body.vel = glm::vec2();
@@ -187,4 +187,12 @@ void update_cell(LogicWorld *logic, PhysicsWorld *physics, Slot<Cell> *slot, flo
 	break;    
     }
     }
+}
+
+void update_logic(LogicWorld *logic, PhysicsWorld *physics, float time)
+{
+    logic->cells.iter_nonempty_slots().do_each([&](Slot<Cell> *slot)
+    {
+        update_cell(logic, physics, slot, time);
+    });
 }

@@ -3,6 +3,7 @@
 #include <iostream>
 #include "physics/physics.hpp"
 #include "graphics/graphics.hpp"
+#include "logic/logic.hpp"
 #include "string.h"
 #include "time.h"
 #include "sleep.h"
@@ -10,7 +11,8 @@
 #define GLFW_INCLUDE_NONE
 #include "GLFW/glfw3.h"
 
-PhysicsWorld world;
+PhysicsWorld physics;
+LogicWorld logic;
 
 int main(int argc, char **argv)
 {
@@ -31,7 +33,10 @@ int main(int argc, char **argv)
     glViewport(0, 0, 640, 480);
     
     // init physics
-    init_physics(&world);
+    init_physics(&physics);
+
+    // init logic
+    init_logic_world(&logic, &physics);
     
     double min_frame_time = 1 / 10.f;
     double frame_start = glfwGetTime() - min_frame_time;
@@ -39,12 +44,10 @@ int main(int argc, char **argv)
     {
 	double elapsed_time = glfwGetTime() - frame_start;
 	frame_start+= elapsed_time;
-	
-	// physics
-	update_physics(&world, elapsed_time);
-	
-	// graphics
-	render(&graphics, &world);
+
+	update_logic(&logic, &physics, elapsed_time);
+	update_physics(&physics, elapsed_time);
+	render(&graphics, &physics);
 	
 	glfwSwapBuffers(window);
 	glfwPollEvents();
