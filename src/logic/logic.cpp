@@ -4,7 +4,40 @@
 
 void init_logic_world(LogicWorld *logic, PhysicsWorld *physics)
 {
+    AttachmentConfig child_att;
+    child_att.delta_angle = M_PI;
+    child_att.distance = 0;
+    child_att.strength = 1;
     
+    CellType cell_type(CellType::STEM_CELL);
+    StemCell &stem_type = cell_type.stem_cell;
+    stem_type.optional_child_attachment = Optional<AttachmentConfig>(child_att);
+    stem_type.passed_attachments[0].push_back(0);
+    stem_type.children_angles[0] = 0;
+    stem_type.children_angles[1] = 0;
+    stem_type.min_split_mass = 0.5;
+    stem_type.child0_amount = 0.5;
+
+    Slot<CellType> *cell_type_slot = logic->cell_types.add(cell_type);
+    cell_type_slot->value().stem_cell.children_types[0] = cell_type_slot;
+    cell_type_slot->value().stem_cell.children_types[1] = cell_type_slot;
+
+    Body body;
+    body.angle = 0;
+    body.angle_vel = 0;
+    body.mass = 1;
+    body.mass_per_radius = 1;
+    body.pos = glm::vec2(3, 3);
+    assert(BodyRooms::no_negative_rooms);
+    body.room_x = body.room_y = -1;
+    body.vel = glm::vec2(0, 0);
+    Slot<Body> *body_slot = physics->bodies.add(body);
+    
+    Cell first_cell;
+    first_cell.type = cell_type_slot;
+    first_cell.body_slot = body_slot;
+    first_cell.life_time = 0;
+    logic->add(first_cell);
 }
 
 void kill_cell(Slot<Cell> *slot)
@@ -111,6 +144,8 @@ void update_cell(LogicWorld *logic, PhysicsWorld *physics, Slot<Cell> *slot, flo
 		child_body.angle = cell.body().angle + stem_cell.children_angles[i];
 		child_body.angle_vel = 0;
 		child_body.mass = abs((i - stem_cell.child0_amount) * parent_mass);
+		// just for now
+		child_body.mass = parent_mass;
 		child_body.mass_per_radius = 1;
 		glm::vec2 dir = glm::vec2(cos(cell.body().angle + M_PI * (i * 2 - 1)),
 		                          sin(cell.body().angle + M_PI * (i * 2 - 1)))
