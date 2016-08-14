@@ -183,13 +183,13 @@ void init_graphics(Graphics *graphics, PhysicsWorld *physics)
 	glGenVertexArrays(1, &vao);
 
      	float vertices[6 * VERTEX_STRIDE] = {
-	    -0.3, 0, 1,  0, 0,
-	    +0.3, 0, 1,  0, 1,
-	    +0.3, 1, 1,  1, 1,
+	    -1, 0, 1,  0, 0,
+	    +1, 0, 1,  0, 1,
+	    +1, 1, 1,  1, 1,
 
-	    -0.3, 0, 1,  0, 0,
-	    +0.3, 1, 1,  1, 1,
-	    -0.3, 1, 1,  1, 0,
+	    -1, 0, 1,  0, 0,
+	    +1, 1, 1,  1, 1,
+	    -1, 1, 1,  1, 0,
 	};
        	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
@@ -267,11 +267,13 @@ void render(Graphics *graphics, PhysicsWorld *physics, LogicWorld *logic, glm::m
     {
 	Body *body0 = attachment->bodies[0];
 	Body *body1 = attachment->bodies[1];
+
+	float width = std::min(body0->radius(), body1->radius()) * 0.8;
 	
 	glm::vec2 sub = body1->pos - body0->pos;
 	glm::vec3 sub3(sub.x, sub.y, 0);
 	glm::vec4 sub4(sub.x, sub.y, 0, 0);
-	glm::vec3 orthsub = glm::normalize(glm::cross(sub3, glm::vec3(0, 0, 1)));
+	glm::vec3 orthsub = glm::normalize(glm::cross(sub3, glm::vec3(0, 0, 1))) * width;
 	glm::vec4 orthsub4(orthsub.x, orthsub.y, orthsub.z, 0);
 	glm::vec4 pos4(body0->pos.x, body0->pos.y, 0, 1);
  
