@@ -30,7 +30,14 @@ void print_type(CellType const &type, int indent)
 	std::string tag_str = "MUSCLE_CELL";
 	MuscleCellType const &muscle = type.muscle_cell;
 
-	std::cout << VAR(tag_str) << VAR(muscle.fix_input_attachment);
+	std::cout << VAR(tag_str);
+	if (muscle.fix_input_attachment.empty)
+	    std::cout << std::string(indent, ' ') << "no fix\n";
+	else
+	{
+	    std::cout << std::string(indent, ' ') << "fix@"
+		      << muscle.fix_input_attachment.value() << "\n";
+	}
 
 	for (size_t i = 0; i != muscle.control_inputs.size(); ++i)
 	    std::cout << std::string(indent, ' ') << "attachment_distance@"
@@ -120,7 +127,7 @@ void init_logic_world(LogicWorld *logic, PhysicsWorld *physics)
 	input.output_attachment = 2;
 	muscle_type.muscle_cell.control_inputs.push_back(input);
     }
-    muscle_type.muscle_cell.fix_input_attachment = 1;
+    muscle_type.muscle_cell.fix_input_attachment = Optional<size_t>(1);
     Slot<CellType> *muscle_type_slot = logic->cell_types.add(muscle_type);
 
     CellType pass_neuron_type(CellType::NEURON_CELL);
@@ -349,10 +356,12 @@ void update_cell(LogicWorld *logic, PhysicsWorld *physics, Slot<Cell> *slot, flo
 	if (cell.charge != 0)
 	    LOG_DEBUG("why tf am I charged?!?!");
 	MuscleCellType &muscle = cell_type.muscle_cell;
-	cell.attachment(muscle.fix_input_attachment).do_value([&](LogicAttachment &la)
-	{
-	    cell.body().fixed = la.other_cell->charge > 0.5;
-	});
+	if (!muscle.fix_input_attachment.empty)
+	    cell.attachment(muscle.fix_input_attachment.value())
+	        .do_value([&](LogicAttachment &la)
+	        {
+	            cell.body().fixed = la.other_cell->charge > 0.5;
+	        });
 	iter(muscle.control_inputs)
 	    .filter([&](MuscleInput *input)
 		    {

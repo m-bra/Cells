@@ -48,7 +48,7 @@ struct MuscleCellType
     /// The attachment to listen to.
     /// If the charge of the attached cell is near one, this MuscleCellType will fix the body.
     /// If the charge of the attached cell is near zero, this MuscleCellType will release.
-    size_t fix_input_attachment;
+    Optional<size_t> fix_input_attachment;
     /// this vector specifies which input charge attachments control which output attachments
     std::vector<MuscleInput> control_inputs; 
 };
