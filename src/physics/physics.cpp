@@ -282,7 +282,7 @@ void init_physics(PhysicsWorld *world)
 
 void update_physics(PhysicsWorld *world, float elapsed_time)
 {
-    float base_repulsion_force = 2 / 0.1;
+    float base_repulsion_force = 2 / 1;
     float base_attachment_force = 5 / 0.5;
     float decay_per_second = 0.3;
 

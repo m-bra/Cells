@@ -304,7 +304,7 @@ void update_cell(LogicWorld *logic, PhysicsWorld *physics, Slot<Cell> *slot, flo
 		glm::vec2 dir = glm::vec2(cos(cell.body().angle + 0.5 * M_PI * (i * 2 - 1)),
 		                          sin(cell.body().angle + 0.5 * M_PI * (i * 2 - 1)))
 		                * child_body.radius()
-		                * 0.5f; // so that the cells have to repulse first, cool effect 
+		                * 0.1f; // so that the cells have to repulse first, cool effect 
 		child_body.pos = cell.body().pos + dir;
 		child_body.vel = glm::vec2();
 		assert(BodyRooms::no_negative_rooms);
