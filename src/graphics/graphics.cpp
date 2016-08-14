@@ -1,3 +1,4 @@
+#include "Logger.hpp"
 #include "GLL/GLL.hpp"
 #include "graphics.hpp"
 #include <cmath>
@@ -5,7 +6,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include "CImg.h"
 #include "Logger.hpp"
-#include "physics/physics.hpp"
+#include "logic/logic.hpp"
 
 using namespace cimg_library;
 
@@ -79,6 +80,9 @@ unsigned char *load_img(const char *filename, int *width, int *height)
 	}
     else
 	LOG_FATAL("Cannot load ", filename, " 3 or 4 channels required, have ", img.spectrum());
+    LOG_MSG("Loaded image ",
+	     filename, ": ",
+	     img.width(), "x", img.height(), img.spectrum() == 3 ? "@RGB" : "@RGBA");
     return pixels;
 }
 
@@ -98,6 +102,8 @@ void init_graphics(Graphics *graphics)
 {
     gll::init();
     gll::setCulling(false);
+    glEnable (GL_BLEND);
+    glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     using namespace glbinding;
     setCallbackMaskExcept(CallbackMask::After, { "glGetError" });
@@ -118,8 +124,21 @@ void init_graphics(Graphics *graphics)
     program.link();
     graphics->program_vars.mvp = program.getUniformLocation("mvp");
     graphics->program_vars.tex = program.getUniformLocation("tex");
-    graphics->program_vars.tex_off_x = program.getUniformLocation("tex_off_x");
+    graphics->program_vars.tex_off_y = program.getUniformLocation("tex_off_y");
+    graphics->program_vars.overlay_color = program.getUniformLocation("overlay_color");
     program.bind();
+
+    // cell texture
+    int width, height;
+    unsigned char *pixels = load_img("res/cell.png", &width, &height);
+    upload_texture(&graphics->cell_tex, pixels, width, height);
+    delete[] pixels;
+    graphics->cell_tex_rows = height / width;
+
+    // attachment texture
+    pixels = load_img("res/attachment.png", &width, &height);
+    upload_texture(&graphics->attachment_tex, pixels, width, height);
+    delete [] pixels;
 
     // cell vbo & vao
     {
@@ -129,7 +148,7 @@ void init_graphics(Graphics *graphics)
 	
 	constexpr int circle_resolution = 20;
 	float vertices[(circle_resolution+2) * VERTEX_STRIDE];
-	circle(circle_resolution, 0.7, 1, 0, 0, 0, 1, 1, vertices);
+	circle(circle_resolution, 1, 1, 0, 0, 0, 1, 1/(float)graphics->cell_tex_rows, vertices);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	glBufferData(GL_ARRAY_BUFFER, (circle_resolution + 2) * VERTEX_STRIDE * sizeof(float), vertices, GL_STATIC_DRAW);
 	
@@ -154,13 +173,13 @@ void init_graphics(Graphics *graphics)
 	glGenVertexArrays(1, &vao);
 	
      	float vertices[6 * VERTEX_STRIDE] = {
-	    -0.2, 0, 0,  0, 0,
-	    +0.2, 0, 0,  0, 1,
-	    +0.2, 1, 0,  1, 1,
+	    -0.3, 0, 0,  0, 0,
+	    +0.3, 0, 0,  0, 1,
+	    +0.3, 1, 0,  1, 1,
 
-	    -0.2, 0, 0,  0, 0,
-	    +0.2, 1, 0,  1, 1,
-	    -0.2, 1, 0,  1, 0,
+	    -0.3, 0, 0,  0, 0,
+	    +0.3, 1, 0,  1, 1,
+	    -0.3, 1, 0,  1, 0,
 	};
        	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
@@ -178,32 +197,22 @@ void init_graphics(Graphics *graphics)
 	graphics->attachment_model.vbo = vbo;
 	graphics->attachment_model.vao = vao;		
     }
-
-    // cell texture
-    int width, height;
-    unsigned char *pixels = load_img("res/cell.png", &width, &height);
-    upload_texture(&graphics->cell_tex, pixels, width, height);
-    delete[] pixels;
-
-    // attachment texture
-    pixels = load_img("res/attachment.png", &width, &height);
-    upload_texture(&graphics->attachment_tex, pixels, width, height);
-    delete [] pixels;
 }
 
-void render(Graphics *graphics, PhysicsWorld *world)
+void render(Graphics *graphics, PhysicsWorld *physics, LogicWorld *logic, glm::mat4 const &view)
 {
-    glClearColor(.1, 1, .1, 1);
+    glClearColor(.1, .1, .1, 1);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glUniform1i(graphics->program_vars.tex, 0);
     glActiveTexture(GL_TEXTURE0 + 0);
 
-    glm::mat4 view = glm::scale(glm::mat4(), glm::vec3(1 / 10.f, 1 / 10.f, 1 / 10.f));
-    view = glm::translate(view, glm::vec3(-5, -5, 0));
-
     glBindTexture(GL_TEXTURE_2D, graphics->attachment_tex);
-    world->attachments.iter().do_each([&](Attachment *attachment)
+
+    glUniform4f(graphics->program_vars.overlay_color, 0, 0, 0, 0);
+    glUniform1f(graphics->program_vars.tex_off_y, 0);
+    
+    physics->attachments.iter().do_each([&](Attachment *attachment)
     {
 	Body *body0 = attachment->bodies[0];
 	Body *body1 = attachment->bodies[1];
@@ -214,7 +223,7 @@ void render(Graphics *graphics, PhysicsWorld *world)
 	glm::vec3 orthsub = glm::normalize(glm::cross(sub3, glm::vec3(0, 0, 1)));
 	glm::vec4 orthsub4(orthsub.x, orthsub.y, orthsub.z, 0);
 	glm::vec4 pos4(body0->pos.x, body0->pos.y, 0, 1);
-
+ 
 	glm::mat4 model;
 	// stretch & rotate
 	model[0] = orthsub4;
@@ -230,15 +239,26 @@ void render(Graphics *graphics, PhysicsWorld *world)
     
     glBindTexture(GL_TEXTURE_2D, graphics->cell_tex);
 
-    world->bodies.iter().do_each([&](Body *body)
+    logic->cells.iter().do_each([&](Cell *cell)
     {
-	float r = body->radius();
-	glm::mat4 model = glm::scale(glm::mat4(), glm::vec3(r, r, r));
+	Body *body = &cell->body();
+	
+	glm::mat4 model;
 	model = glm::translate(model, glm::vec3(body->pos.x, body->pos.y, 0.f));
 	model = glm::rotate(model, body->angle, glm::vec3(0, 0, 1));
+	model = glm::scale(model, glm::vec3(body->radius(), body->radius(), 1));
+	
        	glm::mat4 mvp = view * model;
 	glUniformMatrix4fv(graphics->program_vars.mvp, 1, false, &mvp[0][0]);
+	
 	glBindVertexArray(graphics->cell_model.vao);
+
+	glUniform4f(graphics->program_vars.overlay_color,
+		    cell->body().fixed ? 0.2 : 0.0,
+		    cell->charge * 0.3,
+	            0, 0);
+	glUniform1f(graphics->program_vars.tex_off_y, (int)cell->type()._tag / (float)graphics->cell_tex_rows);
+
 	glDrawArrays(GL_TRIANGLE_FAN, 0, 20 + 1);
     });
 }

@@ -9,19 +9,20 @@
 
 #define ROOMS_X 50
 #define ROOMS_Y 50
-#define MAX_BODIES 500
-#define MAX_ATTACHMENTS 500
+constexpr size_t MAX_BODIES = 500;
+constexpr size_t MAX_ATTACHMENTS = MAX_BODIES;
 
 struct Body
 {
     glm::vec2 pos, vel;
-    float angle, angle_vel;
-    float mass;
+    float angle = 0, angle_vel = 0;
+    float mass = 1;
     /// The "density" of the body.
-    float mass_per_radius;
-    int room_x, room_y;
+    float mass_per_radius = 1;
+    int room_x = -1, room_y = 1;
+    bool fixed = false;
 
-    float radius()
+    float radius() const
     {
 	return mass / mass_per_radius;
     }

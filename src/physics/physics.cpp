@@ -1,3 +1,4 @@
+#include "Logger.hpp"
 #include <glm/glm.hpp>
 #include <cmath>
 #include "physics.hpp"
@@ -5,7 +6,8 @@
 #include <vector>
 #include "Iterator.hpp"
 
-/// Apply a spring force between two bodies that either only repulses or only attracts (controlled by boolean "repulsion")
+/// Apply a spring force between two bodies that either only repulses or attracts (controlled by boolean "repulsion")
+/// repulsion == 1: only repulse. repulsion == 0: repulse && attach. (according to distance)
 /// "distance" is the preferred distance between the two bodies.
 /// for repulsion, all distances below the prefered result in correction force.
 /// for repulsion, all distances above the prefered result in correction force.
@@ -20,11 +22,23 @@ void apply_spring_force(Body *body0, Body *body1,
         dist - body0->radius() - body1->radius() - distance;
     if (repulsion)
         stretch_factor = fminf(stretch_factor, 0);    
-    else
-        stretch_factor = fmaxf(stretch_factor, 0);
-    float force = base_force * stretch_factor; 
+    float force = base_force * stretch_factor;
 
-    glm::vec2 force_vec = sub * (force / dist);
+    if (false && force != 0)
+    {
+	std::string tag;
+	if (repulsion) tag = "[repulsion]";
+	else tag = "[attachment]";
+	LOG_DEBUG(tag, " dist: ", dist, " distance: ", distance,
+		  " radii: ", body0->radius(), " ", body1->radius(),
+		  " stretch_factor: ", stretch_factor, " force: ", force, " time: ", time);
+    }
+    
+    glm::vec2 force_vec;
+    if (dist > 0.1)
+	force_vec = sub / dist * force;
+    else
+	force_vec = glm::vec2(1.f, 0.f) * force;
     body0->vel+= force_vec * (time / body0->mass);
     body1->vel-= force_vec * (time / body1->mass);
 }
@@ -41,10 +55,10 @@ void apply_angle_force(Body *body0, Body *body1,
 }
 
 void apply_attachment_forces(PhysicsWorld *world, float time, float base_force)
-{
+{    
     world->attachments.iter().do_each(
 	[&](Attachment *attachment)
-	{
+	{	    
 	    Body *body0 = &*attachment->bodies[0];
 	    Body *body1 = &*attachment->bodies[1];
  	    apply_spring_force(
@@ -200,9 +214,11 @@ void apply_velocities(PhysicsWorld *world, float time)
 
     world->bodies.iter().do_each([&](Body *body)
         {
-	    body->pos+= body->vel * time;
-	    body->angle+= body->angle_vel * time;
-	    ensure_inside_bounds(0, 0, room_width * ROOMS_X, room_height * ROOMS_Y, &*body);
+	    if (!body->fixed)
+	    {
+		body->pos+= body->vel * time;
+		body->angle+= body->angle_vel * time;
+		ensure_inside_bounds(0, 0, room_width * ROOMS_X, room_height * ROOMS_Y, &*body);             }
 	});
 }
 
@@ -283,7 +299,8 @@ Optional<Attachment *> find_attachment(PhysicsWorld &world, Body *a, Body *b)
     auto it = world.attachments.iter()
         .filter([&](Attachment *attachment)
 	{
-	    return attachment->bodies[0] == a && attachment->bodies[1] == b;
+	    return (attachment->bodies[0] == a && attachment->bodies[1] == b)
+	        || (attachment->bodies[0] == b && attachment->bodies[1] == a);
  	});
 
     Optional<Attachment *> needle = it.next();

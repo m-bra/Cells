@@ -4,9 +4,11 @@ smooth in vec2 fragUV;
 out vec4 fragRGBA;
 
 uniform sampler2D tex;
-uniform float tex_off_x;
+uniform float tex_off_y;
+uniform vec4 overlay_color;
 
 void main()
 {
-    fragRGBA = texture(tex, fragUV + vec2(tex_off_x, 0));
+    vec2 tex_off = vec2(0, tex_off_y);
+    fragRGBA = texture(tex, fragUV + tex_off) + overlay_color;
 }

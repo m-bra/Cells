@@ -5,5 +5,6 @@
 -I%PROJECT%/../shared/Logger/1/
 -I%PROJECT%/../shared/slots/1/
 -I%PROJECT%/../shared/cimg/1/
+-I%PROJECT%/../shared/input_utils/1/
 -xc++
 -std=c++1z
