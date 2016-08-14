@@ -10,5 +10,6 @@ uniform vec4 overlay_color;
 void main()
 {
     vec2 tex_off = vec2(0, tex_off_y);
-    fragRGBA = texture(tex, fragUV + tex_off) + overlay_color;
+    fragRGBA = texture(tex, fragUV + tex_off) + overlay_color
+	+ vec4(fragXYZ.z * 0.2, fragXYZ.z * 0.2, fragXYZ.z * 0.2, 0);
 }

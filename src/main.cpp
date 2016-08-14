@@ -23,8 +23,8 @@ LogicWorld logic;
 bool mouse_down = false;
 glm::mat4 view;
 glm::vec2 last_cursor;
-glm::vec2 motion_acc;
 ViewConfig viewconfig;
+int w = 800, h = 600;
 
 int main(int argc, char **argv)
 {
@@ -33,18 +33,18 @@ int main(int argc, char **argv)
 	return -1;
     std::atexit(glfwTerminate);
 
-    int w = 640, h = 480;
     glfwWindowHint(GLFW_SAMPLES, 4);
     GLFWwindow *window = glfwCreateWindow(w, h, "float", 0, 0);
     if (!window)
 	exit(-1);
 
+    view = glm::mat4();
     view[0] = glm::vec4(0.1, 0, 0, 0);
     view[1] = glm::vec4(0, 0.1, 0, 0);
     view[2] = glm::vec4(0, 0, 1, 0);
     view[3] = glm::vec4(-2, -2, 0, 1);
 
-    viewconfig.trans_per_mouse_move = 1 / (float)w;
+    viewconfig.trans_per_mouse_move = 3 / (float)w;
     viewconfig.zoom_per_scroll = 1.1;
 
     glfwSetKeyCallback(window, [](GLFWwindow *, int key, int scancode, int action, int mods){});
@@ -58,20 +58,19 @@ int main(int argc, char **argv)
 				 
 				 if (mouse_down)
 				 {
-				     motion_acc+= cursor - last_cursor;
-				     if (glm::length(motion_acc) > 4)
-				     {
-					 motion_acc.y = -motion_acc.y;
-					 mouse_move(view, motion_acc, viewconfig);
-					 motion_acc = glm::vec2();
-				     }					 
+				     glm::vec2 motion = cursor - last_cursor;
+				     motion.y = -motion.y;
+				     mouse_move(view, motion, viewconfig);
 				 }
 				     
 				 last_cursor = cursor;
 			     });
     glfwSetScrollCallback(window, [](GLFWwindow *, double, double y)
 			  {
-			      scroll(view, y, last_cursor, viewconfig);
+			      glm::vec2 wsize(w, h);
+			      glm::vec2 convcurs = last_cursor / wsize * 2.f - glm::vec2(1, 1);
+			      convcurs.y = -convcurs.y;
+			      scroll(view, y, convcurs, viewconfig);
 			  });
     
     glfwMakeContextCurrent(window);

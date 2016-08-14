@@ -216,16 +216,17 @@ void init_graphics(Graphics *graphics, PhysicsWorld *physics)
 	
 	float bg_w = physics->body_rooms.room_width * ROOMS_X;
 	float bg_h = physics->body_rooms.room_height * ROOMS_Y;
+	float tile_w = 20, tile_h = tile_w;
 
 	// one room, one texture
      	float vertices[6 * VERTEX_STRIDE] = {
 	       0,    0, 1,  0, 0,
-	    bg_w,    0, 1,  ROOMS_X, 0,
-	    bg_w, bg_h, 1,  ROOMS_X, ROOMS_Y,
+	    bg_w,    0, 1,  bg_w / tile_w, 0,
+	    bg_w, bg_h, 1,  bg_w / tile_w, bg_h / tile_h,
 
 	       0,    0, 1,  0, 0,
-	    bg_w, bg_h, 1,  ROOMS_X, ROOMS_Y,
-	       0, bg_h, 1,  ROOMS_X, 0,
+	    bg_w, bg_h, 1,  bg_w / tile_w, bg_h / tile_h,
+	       0, bg_h, 1,  0, bg_h / tile_h,
 	};
        	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
