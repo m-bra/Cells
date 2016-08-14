@@ -86,22 +86,23 @@ unsigned char *load_img(const char *filename, int *width, int *height)
     return pixels;
 }
 
-void upload_texture(GLuint *texture, unsigned char *pixels, int width, int height)
+void upload_texture(GLuint *texture, unsigned char *pixels, int width, int height, GLuint unit)
 {
     // push texture to gpu
     glGenTextures(1, texture);
+    glActiveTexture(GL_TEXTURE0 + unit);
     glBindTexture(GL_TEXTURE_2D, *texture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0,
 		 GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glBindTexture(GL_TEXTURE_2D, 0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 }
 
-void init_graphics(Graphics *graphics)
+void init_graphics(Graphics *graphics, PhysicsWorld *physics)
 {
     gll::init();
     gll::setCulling(false);
+    gll::setDepthTest(true);
     glEnable (GL_BLEND);
     glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -131,14 +132,23 @@ void init_graphics(Graphics *graphics)
     // cell texture
     int width, height;
     unsigned char *pixels = load_img("res/cell.png", &width, &height);
-    upload_texture(&graphics->cell_tex, pixels, width, height);
+    upload_texture(&graphics->cell_tex, pixels, width, height, Graphics::cell_texture_unit);
     delete[] pixels;
     graphics->cell_tex_rows = height / width;
 
     // attachment texture
     pixels = load_img("res/attachment.png", &width, &height);
-    upload_texture(&graphics->attachment_tex, pixels, width, height);
-    delete [] pixels;
+    upload_texture(&graphics->attachment_tex, pixels, width, height,
+		   Graphics::attachment_texture_unit);
+    delete[] pixels;
+
+    // background texture
+    pixels = load_img("res/background.png", &width, &height);
+    upload_texture(&graphics->background_tex, pixels, width, height,
+		   Graphics::background_texture_unit);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    delete[] pixels;
 
     // cell vbo & vao
     {
@@ -171,15 +181,15 @@ void init_graphics(Graphics *graphics)
 	GLuint vbo, vao;
 	glGenBuffers(1, &vbo);
 	glGenVertexArrays(1, &vao);
-	
-     	float vertices[6 * VERTEX_STRIDE] = {
-	    -0.3, 0, 0,  0, 0,
-	    +0.3, 0, 0,  0, 1,
-	    +0.3, 1, 0,  1, 1,
 
-	    -0.3, 0, 0,  0, 0,
-	    +0.3, 1, 0,  1, 1,
-	    -0.3, 1, 0,  1, 0,
+     	float vertices[6 * VERTEX_STRIDE] = {
+	    -0.3, 0, 1,  0, 0,
+	    +0.3, 0, 1,  0, 1,
+	    +0.3, 1, 1,  1, 1,
+
+	    -0.3, 0, 1,  0, 0,
+	    +0.3, 1, 1,  1, 1,
+	    -0.3, 1, 1,  1, 0,
 	};
        	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
@@ -197,6 +207,42 @@ void init_graphics(Graphics *graphics)
 	graphics->attachment_model.vbo = vbo;
 	graphics->attachment_model.vao = vao;		
     }
+
+    // background vbo & vao
+    {
+	GLuint vbo, vao;
+	glGenBuffers(1, &vbo);
+	glGenVertexArrays(1, &vao);
+	
+	float bg_w = physics->body_rooms.room_width * ROOMS_X;
+	float bg_h = physics->body_rooms.room_height * ROOMS_Y;
+
+	// one room, one texture
+     	float vertices[6 * VERTEX_STRIDE] = {
+	       0,    0, 1,  0, 0,
+	    bg_w,    0, 1,  ROOMS_X, 0,
+	    bg_w, bg_h, 1,  ROOMS_X, ROOMS_Y,
+
+	       0,    0, 1,  0, 0,
+	    bg_w, bg_h, 1,  ROOMS_X, ROOMS_Y,
+	       0, bg_h, 1,  ROOMS_X, 0,
+	};
+       	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	
+	glBindVertexArray(vao);
+	GLenum floatType = gll::OpenGLType<float>::type;
+	glEnableVertexAttribArray(graphics->program_vars.vertXYZ);
+	glEnableVertexAttribArray(graphics->program_vars.vertUV);
+	int stride = VERTEX_STRIDE * sizeof(float);
+	glVertexAttribPointer(graphics->program_vars.vertXYZ, 3, floatType, GL_FALSE,
+			      stride, (void *)(0 * sizeof(float)));
+	glVertexAttribPointer(graphics->program_vars.vertUV, 2, floatType, GL_FALSE,
+			      stride, (void *)(3 * sizeof(float)));
+	
+	graphics->background_model.vbo = vbo;
+	graphics->background_model.vao = vao;		
+    }
 }
 
 void render(Graphics *graphics, PhysicsWorld *physics, LogicWorld *logic, glm::mat4 const &view)
@@ -204,13 +250,17 @@ void render(Graphics *graphics, PhysicsWorld *physics, LogicWorld *logic, glm::m
     glClearColor(.1, .1, .1, 1);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glUniform1i(graphics->program_vars.tex, 0);
-    glActiveTexture(GL_TEXTURE0 + 0);
-
-    glBindTexture(GL_TEXTURE_2D, graphics->attachment_tex);
-
     glUniform4f(graphics->program_vars.overlay_color, 0, 0, 0, 0);
     glUniform1f(graphics->program_vars.tex_off_y, 0);
+
+    // background
+    glUniformMatrix4fv(graphics->program_vars.mvp, 1, false, &view[0][0]);
+    glUniform1i(graphics->program_vars.tex, Graphics::background_texture_unit);
+    glBindVertexArray(graphics->background_model.vao);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+
+    // attachments
+    glUniform1i(graphics->program_vars.tex, Graphics::attachment_texture_unit);
     
     physics->attachments.iter().do_each([&](Attachment *attachment)
     {
@@ -224,7 +274,7 @@ void render(Graphics *graphics, PhysicsWorld *physics, LogicWorld *logic, glm::m
 	glm::vec4 orthsub4(orthsub.x, orthsub.y, orthsub.z, 0);
 	glm::vec4 pos4(body0->pos.x, body0->pos.y, 0, 1);
  
-	glm::mat4 model;
+	glm::mat4 model = glm::mat4();
 	// stretch & rotate
 	model[0] = orthsub4;
 	model[1] = sub4;
@@ -236,14 +286,15 @@ void render(Graphics *graphics, PhysicsWorld *physics, LogicWorld *logic, glm::m
 	glBindVertexArray(graphics->attachment_model.vao);
 	glDrawArrays(GL_TRIANGLES, 0, 6);
     });
-    
-    glBindTexture(GL_TEXTURE_2D, graphics->cell_tex);
+
+    // cells
+    glUniform1i(graphics->program_vars.tex, Graphics::cell_texture_unit);
 
     logic->cells.iter().do_each([&](Cell *cell)
     {
 	Body *body = &cell->body();
 	
-	glm::mat4 model;
+	glm::mat4 model = glm::mat4();
 	model = glm::translate(model, glm::vec3(body->pos.x, body->pos.y, 0.f));
 	model = glm::rotate(model, body->angle, glm::vec3(0, 0, 1));
 	model = glm::scale(model, glm::vec3(body->radius(), body->radius(), 1));

@@ -75,17 +75,17 @@ int main(int argc, char **argv)
 			  });
     
     glfwMakeContextCurrent(window);
-
-    // init graphics
-    Graphics graphics;
-    init_graphics(&graphics);
-    glViewport(0, 0, w, h);
     
     // init physics
     init_physics(&physics);
 
     // init logic
     init_logic_world(&logic, &physics);
+
+    // init graphics
+    Graphics graphics;
+    init_graphics(&graphics, &physics);
+    glViewport(0, 0, w, h);
     
     double min_frame_time = 1 / 30.f;
     double frame_start = glfwGetTime() - min_frame_time;
