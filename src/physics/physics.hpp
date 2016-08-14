@@ -7,8 +7,8 @@
 #include "Iterator.hpp"
 #include "slots.hpp"
 
-#define ROOMS_X 50
-#define ROOMS_Y 50
+#define ROOMS_X 20
+#define ROOMS_Y 20
 constexpr size_t MAX_BODIES = 500;
 constexpr size_t MAX_ATTACHMENTS = MAX_BODIES;
 

@@ -225,59 +225,6 @@ void apply_velocities(PhysicsWorld *world, float time)
 void init_physics(PhysicsWorld *world)
 {
     world->body_rooms.room_width = world->body_rooms.room_height = 5;
-    return;
-
-    Body body0;
-    body0.pos[0] = 0.5;
-    body0.pos[1] = 0.5;
-    body0.angle = 0;
-    body0.vel[0] = body0.vel[1] = 0;
-    body0.mass = 1;
-    body0.mass_per_radius = 1;
-    // set to wrong position to force update
-    body0.room_x = body0.room_y = 10;
-    Slot<Body> *id0 = world->bodies.add(body0);
-
-    Body body1;
-    body1.pos[0] = 3;
-    body1.pos[1] = 3;
-    body1.angle = 0;
-    body1.vel[0] = body1.vel[1] = 0;
-    body1.mass = 1;
-    body1.mass_per_radius = 1;
-    // set to wrong position to force update
-    body1.room_x = body1.room_y = 10;
-    Slot<Body> *id1 = world->bodies.add(body1);
-
-    Body body2;
-    body2.pos[0] = 3.5;
-    body2.pos[1] = 3;
-    body2.angle = 0;
-    body2.vel[0] = body2.vel[1] = 0;
-    body2.mass = 1;
-    body2.mass_per_radius = 1;
-    // set to wrong position to force update
-    body2.room_x = body2.room_y = 10;
-    Slot<Body> *id2 = world->bodies.add(body2);
-
-    Attachment attachment; 
-    attachment.config.strength = 1; 
-    attachment.config.delta_angle = M_PI; 
-    attachment.config.distance = .01; 
-    attachment.bodies[0] = &id0->value();
-    attachment.bodies[1] = &id1->value();
-    world->attachments.add(attachment);
-    
-    attachment.config.delta_angle = NAN;
-    attachment.bodies[0] = &id1->value();
-    attachment.bodies[1] = &id2->value();
-    world->attachments.add(attachment);
-
-    attachment.bodies[0] = &id2->value();
-    attachment.bodies[1] = &id0->value();
-    world->attachments.add(attachment);
-
-    update_all_body_rooms(world);
 }
 
 void update_physics(PhysicsWorld *world, float elapsed_time)
